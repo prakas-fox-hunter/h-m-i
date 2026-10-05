@@ -7,5 +7,5 @@ import com.example.library.entity.AppUser;
 
 @Repository
 public interface UserRepository extends JpaRepository<AppUser, Long> {
-    java.util.Optional<AppUser> findByUsername(String username);
+    java.util.Optional<AppUser> findByEmail(String email);
 }

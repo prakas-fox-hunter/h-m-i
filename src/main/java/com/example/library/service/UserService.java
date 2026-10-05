@@ -1,62 +1,53 @@
-// package com.example.library.service;
+package com.example.library.service;
 
-// import java.util.List;
+import java.util.Locale;
 
-// import org.springframework.beans.factory.annotation.Autowired;
-// import org.springframework.security.crypto.password.PasswordEncoder;
-// import org.springframework.stereotype.Service;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
 
-// import com.example.library.dto.UserDto;
-// import com.example.library.entity.User;
-// import com.example.library.repository.UserReposiory;
+import com.example.library.dto.LoginRequest;
+import com.example.library.dto.RegisterRequest;
+import com.example.library.entity.AppUser;
+import com.example.library.exceptions.DuplicateEmailException;
+import com.example.library.repository.UserRepository;
 
-// import jakarta.persistence.EntityNotFoundException;
-// import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 
-// @Service
-// public class UserService {
+@Service
+@RequiredArgsConstructor
+public class UserService {
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
 
-//     @Autowired
-//     private PasswordEncoder passwordEncoder;
-    
-//     @Autowired
-//     private UserReposiory userReposiory;
+    public void register(RegisterRequest request) {
+        String email = normalizeEmail(request.email());
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new DuplicateEmailException();
+        }
 
-//     public List<User> getAllUser(){
-//         return userReposiory.findAll();
-//     }
+        AppUser user = new AppUser();
+        user.setEmail(email);
+        user.setPassword(passwordEncoder.encode(request.password()));
+        try {
+            userRepository.saveAndFlush(user);
+        } catch (DataIntegrityViolationException ex) {
+            // The unique constraint also protects against concurrent registration.
+            throw new DuplicateEmailException();
+        }
+    }
 
-//     public User getById(long id){
-//         return userReposiory.findById(id).get();
-//     }
+    public String login(LoginRequest request) {
+        String email = normalizeEmail(request.email());
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(email, request.password()));
+        return email;
+    }
 
-//     public User addUser(UserDto userDto){
-//         if (userReposiory.findByUsername(userDto.getUsername()).isPresent()) {
-//             throw new RuntimeException("Username already exists");
-            
-//         }
-//         User user = new User();
-//         user.setUsername(userDto.getUsername());
-//         user.setNama(userDto.getNama());
-//         user.setTanggalLahir(userDto.getTanggalLahir());
-//         user.setAddress(userDto.getAddress());
-//         user.setPassword(passwordEncoder.encode(userDto.getPassword()));
-//         return userReposiory.save(user);
-//     }
-
-//     @Transactional
-//     public User updateUser(long id, UserDto userDto){
-//         User user = userReposiory.findById(id).orElseThrow(() -> new EntityNotFoundException("User Not Found"));
-//         user.setNama(userDto.getNama());
-//         user.setPassword(passwordEncoder.encode(userDto.getPassword()));
-//         user.setTanggalLahir(userDto.getTanggalLahir());
-//         user.setAddress(userDto.getAddress());
-//         user = userReposiory.save(user);
-//         return user ;
-//     }
-
-//     public String delteUser(long id){
-//         userReposiory.deleteById(id);
-//         return "Data berhasil di hapus";
-//     }
-// }
+    private String normalizeEmail(String email) {
+        return email.trim().toLowerCase(Locale.ROOT);
+    }
+}

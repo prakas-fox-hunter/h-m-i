@@ -16,7 +16,6 @@ import com.example.library.repository.BranchesRepository;
 import com.example.library.repository.ProvincesRepository;
 import com.example.library.repository.StoresRepository;
 
-import jakarta.annotation.PostConstruct;
 
 @Service
 public class DummyDataService {
@@ -29,7 +28,6 @@ public class DummyDataService {
     @Autowired
     private ProvincesRepository provincesRepository;
 
-    @PostConstruct
     public void createDummyData() {
         // Daftar provinsi di Indonesia (contoh sebagian, bisa lengkapkan sesuai
         // kebutuhan)
