@@ -1,0 +1,34 @@
+stages:
+  - build
+  - dockerize
+  - deploy
+
+build_app:
+  stage: build
+  script:
+    - echo "Building Spring Boot application..."
+    - mvn clean package -DskipTests
+  artifacts:
+    paths:
+      - target/*.jar
+
+dockerize_app:
+  stage: dockerize
+  script:
+    - echo "Building Docker image..."
+    - docker build -t library-app:latest .
+  only:
+    - main
+    - master
+
+deploy_app:
+  stage: deploy
+  script:
+    - echo "Stopping running containers (if any)..."
+    - docker-compose down
+    - echo "Starting containers..."
+    - docker-compose up -d --build
+    - echo "Deployment finished. Access app at http://localhost:8080"
+  only:
+    - main
+    - master
